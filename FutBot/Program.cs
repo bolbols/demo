@@ -87,7 +87,7 @@ namespace FutBot
             var iteration = 0;
             var minb = 150;
 
-            while (doWork)
+            while (doWork && iteration < 15)
             {
                 iteration++;
                 minb += minb < 1000 ? 50 : 100;
@@ -130,9 +130,10 @@ namespace FutBot
 
             if (response.IsSuccessful)
             {
-                Console.WriteLine($"{response.StatusCode}: {response.StatusDescription}");
                 return true;
             }
+            
+            Console.WriteLine($"{response.StatusCode}: {response.StatusDescription}");
 
             await Task.CompletedTask;
 

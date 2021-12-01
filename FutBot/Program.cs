@@ -1,24 +1,159 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using RestSharp;
 
 namespace FutBot
 {
-    public static class Constants
-    {
-        //public const string X_UT_SID = "d41370ae-18de-48f4-8f0b-1627c07bb527";
-        public static string X_UT_SID = "d41370ae-18de-48f4-8f0b-1627c07bb527";
-    }
-
     class Program
     {
-        static async Task Main(string[] args)
+        static async Task Main()
         {
-            Constants.X_UT_SID = args[0];
-            /*var players = new List<Player>
+            await SmartTargetingStrategy();
+        }
+
+        private static async Task SmartTargetingStrategy()
+        {
+            var totalSold = 0;
+            
+            while (true)
+            {
+                var futService = new FutService();
+
+                var players = new Players();
+
+                Console.WriteLine("New Round");
+
+                var auctions = await futService.GetAuctionsInTrade();
+
+                foreach (var auction in auctions.Where(a => a.Expires != -1 || a.TradeState != "closed"))
+                {
+                    var player = players.FirstOrDefault(p => p.Id == auction.ItemData.AssetId);
+                    if (player == null) continue;
+
+                    player.InSales++;
+                }
+
+                foreach (var player in players.OrderBy(p => p.InSales))
+                {
+                    Console.WriteLine($"Player: {player.Name}, In Sales: {player.InSales}");
+                }
+
+                var soldAuctions = auctions.Where(a => a.Expires == -1 && a.TradeState == "closed").ToList();
+
+                totalSold += soldAuctions.Count;
+
+                Console.WriteLine($"Need To Delete: {soldAuctions.Count}");
+
+                foreach (var auction in soldAuctions)
+                {
+                    var player = players.FirstOrDefault(p => p.Id == auction.ItemData.AssetId);
+                    Console.WriteLine(player != null
+                        ? $"Deleting Player {player.Name} Sold With {auction.CurrentBid}"
+                        : "Deleting Unknown Player");
+
+                    await futService.DeleteSoldAuction(auction.TradeId);
+                    await Task.Delay(1000);
+                }
+
+                var expiredAuctions = auctions.Where(a =>
+                    a.Expires == -1 && a.TradeState == "expired").ToList();
+
+                Console.WriteLine($"Need To Resubmit: {expiredAuctions.Count}");
+
+                foreach (var auction in expiredAuctions)
+                {
+                    var sellPrice = auction.ItemData.LastSalePrice + 550;
+                    if (sellPrice >= 1000 && (sellPrice % 100 != 0))
+                    {
+                        sellPrice += 50;
+                    }
+
+                    await futService.SellPlayer(auction.ItemData.Id, sellPrice, 10800);
+                    await Task.Delay(1000);
+                }
+
+                var idleAuctions = auctions.Where(a => a.Expires == 0).ToList();
+
+                Console.WriteLine($"Need To Submit: {idleAuctions.Count}");
+
+                foreach (var auction in idleAuctions)
+                {
+                    var sellPrice = auction.ItemData.LastSalePrice + 550;
+                    if (sellPrice >= 1000 && sellPrice % 100 != 0)
+                    {
+                        sellPrice += 50;
+                    }
+
+                    await futService.SellPlayer(auction.ItemData.Id, sellPrice, 10800);
+                    await Task.Delay(1000);
+                }
+
+                var bought = 0;
+                var needToBuy = 100 - auctions.Count + soldAuctions.Count;
+
+                Console.WriteLine($"Need To Buy: {needToBuy}");
+
+                foreach (var player in players.OrderBy(p => p.InSales).ThenByDescending(p => p.Rating))
+                {
+                    if (bought == needToBuy) break;
+                    var maxPlayerToBuy = 5 - player.InSales;
+                    if (maxPlayerToBuy <= 0) continue;
+
+                    Console.WriteLine($"Need To Buy {Math.Min(needToBuy, maxPlayerToBuy)} For Player {player.Name}");
+
+                    var playerBought = 0;
+
+                    var playerAuctions =
+                        await futService.GetPlayerCheapAuctions(player.Id, maxPrice: player.MaxBuyPrice);
+
+                    if (playerAuctions.Count == 0)
+                    {
+                        Console.WriteLine($"Player {player.Name} Not Available");
+                    }
+
+                    foreach (var playerAuction in playerAuctions.OrderBy(a => a.BuyNowPrice))
+                    {
+                        if (playerBought == maxPlayerToBuy) break;
+                        if (bought == needToBuy) break;
+
+                        var auction = await futService.BuyAuction(playerAuction.TradeId, playerAuction.BuyNowPrice);
+
+                        if (auction == null)
+                        {
+                            break;
+                        }
+
+                        Console.WriteLine($"Player {player.Name} Bought For {playerAuction.BuyNowPrice}");
+
+                        var sellPrice = auction.BuyNowPrice + 550;
+                        if (sellPrice >= 1000 && (sellPrice % 100 != 0))
+                        {
+                            sellPrice += 50;
+                        }
+
+                        await futService.ListPlayer(auction.ItemData.Id, sellPrice, 10800);
+
+                        playerBought++;
+                        bought++;
+
+                        await Task.Delay(1000);
+                    }
+
+                    await Task.Delay(2000);
+                }
+
+                Console.WriteLine($"Round Done, Total Sold: {totalSold}");
+
+                await Task.Delay(5 * 60 * 1000);
+            }
+        }
+
+        private static async Task TargetingStrategy()
+        {
+            var futService = new FutService();
+
+            var players = new List<Player>
             {
                 new(182160, "Knudtzon", "LM", 64),
                 new(228804, "De Sart", "CM", 70),
@@ -55,217 +190,172 @@ namespace FutBot
                 new(208422, "Sanusi", "CM", 69)
             };
 
-            var auctions = await GetAuctionsInTrade();
+            var auctions = await futService.GetAuctionsInTrade();
 
             foreach (var auction in auctions)
             {
                 var player = players.FirstOrDefault(p => p.Id == auction.ItemData.AssetId);
                 if (player == null) continue;
 
-                player.Count++;
+                player.InSales++;
             }
 
-            foreach (var player in players.OrderBy(p => p.Count))
+            foreach (var player in players.OrderBy(p => p.InSales))
             {
                 await Task.Delay(3000);
 
-                var availableAuctions = await GetPlayerAvailableAuctions(player.Id);
+                var availableAuctions = await futService.GetPlayerAvailableAuctions(player.Id);
 
-                if (!availableAuctions.Any())
-                {
-                    Console.WriteLine(
-                        $"Player: {player.Name}, In Trade Count: {player.Count}, Not Available");
-                }
-                else
-                {
-                    Console.WriteLine(
-                        $"Player: {player.Name}, In Trade Count: {player.Count}, Available Count: {availableAuctions.Count}, Min Price: {availableAuctions.Min(a => a.BuyNowPrice)}");
-                }
-            }*/
+                player.Available = availableAuctions.Count;
+                player.MinPrice = availableAuctions.Min(a => a.BuyNowPrice);
+                player.MaxPrice = availableAuctions.Max(a => a.BuyNowPrice);
+                player.AveragePrice =
+                    ((int) Math.Floor(availableAuctions.Sum(a => a.BuyNowPrice) / availableAuctions.Count / 50.0) + 1) *
+                    50;
+            }
 
-            var doWork = true;
-            var iteration = 0;
-            var minb = 150;
-
-            while (doWork && iteration < 15)
+            foreach (var player in players.OrderBy(p => p.Available))
             {
-                iteration++;
-                minb += minb < 1000 ? 50 : 100;
-                await Task.Delay(2000);
-
-                Console.WriteLine($"Iteration: {iteration}");
-
-                var auctions = await GetCriteriaAvailableAuctions(minb);
-
-                if (auctions == null)
-                {
-                    Console.WriteLine("Not found");
-                    continue;
-                }
-
-                var auction = auctions.LastOrDefault();
-
-                if (auction == null)
-                {
-                    Console.WriteLine("Not found");
-                    continue;
-                }
-
-                doWork = !await BuyAuction(auction.TradeId, auction.BuyNowPrice);
+                Console.WriteLine(player);
             }
         }
 
-        private static async Task<bool> BuyAuction(long tradeId, int price)
+        private static async Task MassBuyingStrategy()
         {
-            var client = new RestClient("https://utas.external.s2.fut.ea.com");
-
-            var request = new RestRequest($"/ut/game/fifa22/trade/{tradeId}/bid");
-
-            request.AddFutHeaders();
-
-            request.AddJsonBody(new {bid = price});
-
-            var response = client.Put(request);
-            Console.WriteLine(response.Content);
-
-            if (response.IsSuccessful)
+            while (true)
             {
-                return true;
+                Console.WriteLine("New Round");
+
+                var completed = false;
+
+                var addMinBid = true;
+
+                var futService = new FutService();
+
+                var myAuctions = await futService.GetAuctionsInTrade();
+
+                var soldAuctions = myAuctions.Where(a => a.Expires == -1 && a.TradeState == "closed").ToList();
+                var expiredAuctions = myAuctions.Where(a => a.Expires == -1 && a.TradeState == "expired").ToList();
+                var idleAuctions = myAuctions.Where(a => a.Expires == 0).ToList();
+
+                Console.WriteLine($"Need To Delete: {soldAuctions.Count}");
+
+                foreach (var auction in soldAuctions)
+                {
+                    await futService.DeleteSoldAuction(auction.TradeId);
+                    await Task.Delay(1000);
+                }
+
+                Console.WriteLine($"Need To Resubmit: {expiredAuctions.Count}");
+
+                foreach (var auction in expiredAuctions)
+                {
+                    await futService.ResubmitAuction(auction);
+                    await Task.Delay(1000);
+                }
+
+                Console.WriteLine($"Need To Submit: {idleAuctions.Count}");
+
+                foreach (var auction in idleAuctions)
+                {
+                    await futService.SubmitAuction(auction);
+                    await Task.Delay(1000);
+                }
+
+                return;
+
+                var needToBuy = 100 - myAuctions.Count + soldAuctions.Count;
+
+                Console.WriteLine($"Need To Buy: {needToBuy}");
+
+                var numberOfBoughtPlayers = 0;
+
+                for (var index = 0; index < needToBuy;)
+                {
+                    Console.WriteLine($"Buying Players: {index + 1}/{needToBuy}");
+
+                    var doWork = true;
+                    var iteration = 0;
+
+                    var numberOfBoughtPlayersInSession = 0;
+
+                    while (doWork && iteration < 15)
+                    {
+                        await Task.Delay(15000);
+
+                        addMinBid = !addMinBid;
+
+                        iteration++;
+
+                        Console.WriteLine($"Iteration: {iteration}");
+
+                        var minBid = iteration % 3 == 0 ? 150 : iteration % 3 == 1 ? 200 : 250;
+
+                        var auctions = await futService.GetCriteriaAvailableAuctions(minBid: minBid);
+
+                        if (auctions == null || auctions.Count == 0)
+                        {
+                            Console.WriteLine("Not found");
+                            continue;
+                        }
+
+                        foreach (var tradeAuction in auctions.OrderByDescending(a => a.Expires))
+                        {
+                            if (completed) break;
+
+                            var auction = await futService.BuyAuction(tradeAuction.TradeId, tradeAuction.BuyNowPrice);
+
+                            if (auction == null)
+                            {
+                                break;
+                            }
+
+                            numberOfBoughtPlayersInSession++;
+                            numberOfBoughtPlayers++;
+                            doWork = false;
+
+                            Console.WriteLine($"Bought for {tradeAuction.BuyNowPrice}!!!");
+
+                            await Task.Delay(1000);
+                            var availableAuctions =
+                                await futService.GetPlayerAvailableAuctions(auction.ItemData.AssetId);
+
+                            await Task.Delay(1000);
+
+                            if (availableAuctions.Count == 0)
+                            {
+                                Console.WriteLine("Good Catch!!!");
+                                await futService.ListPlayer(auction.ItemData.Id, 1000);
+                            }
+                            else
+                            {
+                                Console.WriteLine(
+                                    $"Available Count: {availableAuctions.Count}, Min Price: {availableAuctions.Min(a => a.BuyNowPrice)}");
+
+                                var bestPrice = availableAuctions.Min(a => a.BuyNowPrice);
+                                var sellPrice = bestPrice > 1000 ? bestPrice - 100 : bestPrice - 50;
+
+                                await futService.ListPlayer(auction.ItemData.Id, Math.Max(sellPrice, 300));
+                            }
+
+                            if (numberOfBoughtPlayers == needToBuy)
+                            {
+                                completed = true;
+                            }
+                        }
+                    }
+
+                    if (completed) break;
+
+                    if (doWork) continue;
+
+                    index += numberOfBoughtPlayersInSession;
+                }
+
+                Console.WriteLine("Round Completed");
+
+                await Task.Delay(1000 * 60);
             }
-            
-            Console.WriteLine($"{response.StatusCode}: {response.StatusDescription}");
-
-            await Task.CompletedTask;
-
-            return false;
         }
-
-        private static async Task<List<Auction>> GetAuctionsInTrade()
-        {
-            var client = new RestClient("https://utas.external.s2.fut.ea.com");
-
-            var request = new RestRequest("/ut/game/fifa22/tradepile");
-
-            request.AddFutHeaders();
-
-            var response = await client.GetAsync<AuctionResponse>(request, CancellationToken.None);
-            return response.AuctionInfo;
-        }
-
-        private static async Task<List<Auction>> GetCriteriaAvailableAuctions(int minb)
-        {
-            var client = new RestClient("https://utas.external.s2.fut.ea.com");
-
-            var request = new RestRequest("ut/game/fifa22/transfermarket");
-
-            request.AddFutHeaders();
-            
-            //https://utas.external.s2.fut.ea.com/ut/game/fifa22/transfermarket?num=21&start=0&type=player&pos=CB&rarityIds=1&lev=gold&leag=16&maxb=2800
-
-            request.AddQueryParameter("num", "21");
-            request.AddQueryParameter("start", "0");
-            request.AddQueryParameter("type", "player");
-            //request.AddQueryParameter("pos", "CB");
-            request.AddQueryParameter("rarityIds", "1");
-            request.AddQueryParameter("lev", "gold");
-            request.AddQueryParameter("leag", "16");
-            request.AddQueryParameter("minb", minb.ToString());
-            request.AddQueryParameter("maxb", "1500");
-
-            var response = await client.GetAsync<AuctionResponse>(request, CancellationToken.None);
-
-            return response.AuctionInfo;
-        }
-
-        private static async Task<List<Auction>> GetPlayerAvailableAuctions(long playerId)
-        {
-            var client = new RestClient("https://utas.external.s2.fut.ea.com");
-
-            var request = new RestRequest("ut/game/fifa22/transfermarket");
-
-            request.AddFutHeaders();
-
-            request.AddQueryParameter("num", "21");
-            request.AddQueryParameter("start", "0");
-            request.AddQueryParameter("type", "player");
-            request.AddQueryParameter("maskedDefId", playerId.ToString());
-            request.AddQueryParameter("maxb", "500");
-
-            var response = await client.GetAsync<AuctionResponse>(request, CancellationToken.None);
-
-            return response.AuctionInfo;
-        }
-    }
-
-    public static class RestRequestExtension
-    {
-        public static void AddFutHeaders(this RestRequest request)
-        {
-            request.AddHeader("Cache-Control", "no-cache");
-            request.AddHeader("Accept", "*/*");
-            request.AddHeader("Accept-Encoding", "gzip, deflate, br");
-            request.AddHeader("Accept-Language", "en-US,en;q=0.9,fr-FR;q=0.8,fr;q=0.7,ar;q=0.6");
-            request.AddHeader("User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
-            request.AddHeader("Content-Type", "application/json");
-            request.AddHeader("Referer", "https://www.ea.com/");
-            request.AddHeader("X-UT-SID", Constants.X_UT_SID);
-            request.AddHeader("Origin", "https://www.ea.com");
-            request.AddHeader("sec-ch-ua",
-                "\" Not A;Brand\";v= \"99\", \"Chromium\";v=\"96\", \"Google Chrome\";v=\"96\"");
-            request.AddHeader("sec-ch-ua-mobile", "?0");
-            request.AddHeader("sec-ch-ua-platform", "\"Windows\"");
-            request.AddHeader("Sec-Fetch-Dest", "empty");
-            request.AddHeader("Sec-Fetch-Mode", "cors");
-            request.AddHeader("Sec-Fetch-Site", "same-site");
-            request.AddHeader("Connection", "keep-alive");
-            request.AddHeader("Host", "utas.external.s2.fut.ea.com");
-        }
-    }
-
-    public class Player
-    {
-        public long Id { get; set; }
-        public string Name { get; set; }
-        public string Position { get; set; }
-        public int Rating { get; set; }
-        public int Count { get; set; }
-
-        public Player(long id, string name, string position, int rating)
-        {
-            Id = id;
-            Name = name;
-            Position = position;
-            Rating = rating;
-        }
-    }
-
-    public class PlayerData
-    {
-        public long AssetId { get; set; }
-    }
-
-    public class AuctionResponse
-    {
-        public List<Auction> AuctionInfo { get; set; }
-    }
-
-    public class Auction
-    {
-        public int BuyNowPrice { get; set; }
-        public long TradeId { get; set; }
-        public long Expires { get; set; }
-        public PlayerData ItemData { get; set; }
     }
 }
-
-
-/*
-//var options = new JsonSerializerOptions { WriteIndented = true };
-            //var jsonString = JsonSerializer.Serialize(players, options);
-            //await File.WriteAllTextAsync("xyz.json", jsonString);
-
-            var jsonString = await File.ReadAllTextAsync(@"players.json");
-            var players = JsonSerializer.Deserialize<List<Player>>(jsonString);
-
-*/

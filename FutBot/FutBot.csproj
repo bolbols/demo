@@ -9,10 +9,4 @@
       <PackageReference Include="RestSharp" Version="106.13.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <None Update="players.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
-
 </Project>

@@ -4,7 +4,7 @@
     "Name": "Knudtzon",
     "Position": "LM",
     "Rating": 64,
-    "InSales": 2,
+    "InSales": 4,
     "Available": 0,
     "MinPrice": 0,
     "MaxPrice": 0,
@@ -13,8 +13,8 @@
     "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
-    "TotalSoldAllTime": 8,
-    "LastSellDate": "2021-12-07T12:25:14.4797216+01:00"
+    "TotalSoldAllTime": 9,
+    "LastSellDate": "2021-12-07T17:29:39.5743878+00:00"
   },
   {
     "Id": 228804,
@@ -27,11 +27,11 @@
     "MaxPrice": 0,
     "AveragePrice": 0,
     "MaxBuyPrice": 300,
-    "TotalSold": 1,
+    "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 37,
-    "LastSellDate": "2021-12-07T18:12:52.4089473+01:00"
+    "LastSellDate": "2021-12-07T17:12:52.4089473+00:00"
   },
   {
     "Id": 259916,
@@ -48,7 +48,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 27,
-    "LastSellDate": "2021-12-07T16:33:25.2384363+01:00"
+    "LastSellDate": "2021-12-07T15:33:25.2384363+00:00"
   },
   {
     "Id": 242079,
@@ -65,7 +65,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 1,
-    "LastSellDate": "2021-12-06T17:29:15.5189529+01:00"
+    "LastSellDate": "2021-12-06T16:29:15.5189529+00:00"
   },
   {
     "Id": 229910,
@@ -82,14 +82,14 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 6,
-    "LastSellDate": "2021-12-06T12:25:55.6688188+01:00"
+    "LastSellDate": "2021-12-06T11:25:55.6688188+00:00"
   },
   {
     "Id": 201526,
     "Name": "Bech",
     "Position": "RM",
     "Rating": 66,
-    "InSales": 3,
+    "InSales": 2,
     "Available": 0,
     "MinPrice": 0,
     "MaxPrice": 0,
@@ -98,8 +98,8 @@
     "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
-    "TotalSoldAllTime": 64,
-    "LastSellDate": "2021-12-07T17:48:20.2677548+01:00"
+    "TotalSoldAllTime": 65,
+    "LastSellDate": "2021-12-07T17:29:37.3144194+00:00"
   },
   {
     "Id": 206520,
@@ -116,7 +116,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 3,
-    "LastSellDate": "2021-12-06T23:04:26.1547271+01:00"
+    "LastSellDate": "2021-12-06T22:04:26.1547271+00:00"
   },
   {
     "Id": 169708,
@@ -129,11 +129,11 @@
     "MaxPrice": 0,
     "AveragePrice": 0,
     "MaxBuyPrice": 300,
-    "TotalSold": 1,
+    "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 15,
-    "LastSellDate": "2021-12-07T18:12:49.7031691+01:00"
+    "LastSellDate": "2021-12-07T17:12:49.7031691+00:00"
   },
   {
     "Id": 237930,
@@ -150,7 +150,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 26,
-    "LastSellDate": "2021-12-07T17:43:34.4560677+01:00"
+    "LastSellDate": "2021-12-07T16:43:34.4560677+00:00"
   },
   {
     "Id": 239179,
@@ -167,7 +167,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 16,
-    "LastSellDate": "2021-12-07T17:23:40.4786065+01:00"
+    "LastSellDate": "2021-12-07T16:23:40.4786065+00:00"
   },
   {
     "Id": 205929,
@@ -184,7 +184,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 27,
-    "LastSellDate": "2021-12-07T16:20:51.2110735+01:00"
+    "LastSellDate": "2021-12-07T15:20:51.2110735+00:00"
   },
   {
     "Id": 162512,
@@ -201,7 +201,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 1,
-    "LastSellDate": "2021-12-06T04:21:51.5732522+01:00"
+    "LastSellDate": "2021-12-06T03:21:51.5732522+00:00"
   },
   {
     "Id": 193091,
@@ -218,7 +218,7 @@
     "SellPrice": 1200,
     "Deprecated": false,
     "TotalSoldAllTime": 32,
-    "LastSellDate": "2021-12-07T16:57:01.1102689+01:00"
+    "LastSellDate": "2021-12-07T15:57:01.1102689+00:00"
   },
   {
     "Id": 232000,
@@ -235,7 +235,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 28,
-    "LastSellDate": "2021-12-07T16:49:04.3033936+01:00"
+    "LastSellDate": "2021-12-07T15:49:04.3033936+00:00"
   },
   {
     "Id": 221875,
@@ -252,24 +252,24 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 31,
-    "LastSellDate": "2021-12-07T15:55:11.6714029+01:00"
+    "LastSellDate": "2021-12-07T14:55:11.6714029+00:00"
   },
   {
     "Id": 248471,
     "Name": "Taferner",
     "Position": "CM",
     "Rating": 67,
-    "InSales": 2,
+    "InSales": 0,
     "Available": 0,
     "MinPrice": 0,
     "MaxPrice": 0,
     "AveragePrice": 0,
     "MaxBuyPrice": 300,
-    "TotalSold": 1,
+    "TotalSold": 2,
     "SellPrice": 0,
     "Deprecated": false,
-    "TotalSoldAllTime": 9,
-    "LastSellDate": "2021-12-07T18:17:23.7152533+01:00"
+    "TotalSoldAllTime": 11,
+    "LastSellDate": "2021-12-07T17:33:44.4356008+00:00"
   },
   {
     "Id": 259853,
@@ -286,7 +286,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 13,
-    "LastSellDate": "2021-12-07T10:32:37.7498075+01:00"
+    "LastSellDate": "2021-12-07T09:32:37.7498075+00:00"
   },
   {
     "Id": 226518,
@@ -299,18 +299,18 @@
     "MaxPrice": 0,
     "AveragePrice": 0,
     "MaxBuyPrice": 300,
-    "TotalSold": 1,
+    "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 27,
-    "LastSellDate": "2021-12-07T18:08:55.0003085+01:00"
+    "LastSellDate": "2021-12-07T17:08:55.0003085+00:00"
   },
   {
     "Id": 170923,
     "Name": "Eschenko",
     "Position": "RB",
     "Rating": 70,
-    "InSales": 2,
+    "InSales": 4,
     "Available": 0,
     "MinPrice": 0,
     "MaxPrice": 0,
@@ -320,7 +320,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 23,
-    "LastSellDate": "2021-12-07T17:38:13.142332+01:00"
+    "LastSellDate": "2021-12-07T16:38:13.142332+00:00"
   },
   {
     "Id": 202043,
@@ -337,7 +337,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 9,
-    "LastSellDate": "2021-12-06T08:57:01.7134165+01:00"
+    "LastSellDate": "2021-12-06T07:57:01.7134165+00:00"
   },
   {
     "Id": 224855,
@@ -354,14 +354,14 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 18,
-    "LastSellDate": "2021-12-07T07:30:18.9298347+01:00"
+    "LastSellDate": "2021-12-07T06:30:18.9298347+00:00"
   },
   {
     "Id": 233791,
     "Name": "Maksimenko",
     "Position": "GK",
     "Rating": 74,
-    "InSales": 3,
+    "InSales": 1,
     "Available": 0,
     "MinPrice": 0,
     "MaxPrice": 0,
@@ -370,8 +370,8 @@
     "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
-    "TotalSoldAllTime": 45,
-    "LastSellDate": "2021-12-07T17:38:03.1728619+01:00"
+    "TotalSoldAllTime": 47,
+    "LastSellDate": "2021-12-07T17:31:17.8512994+00:00"
   },
   {
     "Id": 228802,
@@ -388,24 +388,24 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 30,
-    "LastSellDate": "2021-12-07T15:47:17.3403041+01:00"
+    "LastSellDate": "2021-12-07T14:47:17.3403041+00:00"
   },
   {
     "Id": 232695,
     "Name": "Sbuttoni",
     "Position": "CB",
     "Rating": 68,
-    "InSales": 2,
+    "InSales": 4,
     "Available": 0,
     "MinPrice": 0,
     "MaxPrice": 0,
     "AveragePrice": 0,
     "MaxBuyPrice": 300,
-    "TotalSold": 1,
+    "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
-    "TotalSoldAllTime": 21,
-    "LastSellDate": "2021-12-07T18:17:21.0887193+01:00"
+    "TotalSoldAllTime": 22,
+    "LastSellDate": "2021-12-07T17:29:32.8644263+00:00"
   },
   {
     "Id": 163156,
@@ -422,7 +422,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 15,
-    "LastSellDate": "2021-12-07T11:02:58.9357916+01:00"
+    "LastSellDate": "2021-12-07T10:02:58.9357916+00:00"
   },
   {
     "Id": 251446,
@@ -439,7 +439,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 19,
-    "LastSellDate": "2021-12-07T16:29:26.8217051+01:00"
+    "LastSellDate": "2021-12-07T15:29:26.8217051+00:00"
   },
   {
     "Id": 247042,
@@ -456,24 +456,24 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 22,
-    "LastSellDate": "2021-12-07T15:47:14.9362979+01:00"
+    "LastSellDate": "2021-12-07T14:47:14.9362979+00:00"
   },
   {
     "Id": 202660,
     "Name": "Sjostedt",
     "Position": "CB",
     "Rating": 62,
-    "InSales": 2,
+    "InSales": 1,
     "Available": 0,
     "MinPrice": 0,
     "MaxPrice": 0,
     "AveragePrice": 0,
     "MaxBuyPrice": 300,
-    "TotalSold": 2,
+    "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
-    "TotalSoldAllTime": 17,
-    "LastSellDate": "2021-12-07T18:04:03.4090761+01:00"
+    "TotalSoldAllTime": 18,
+    "LastSellDate": "2021-12-07T17:29:41.8017141+00:00"
   },
   {
     "Id": 220847,
@@ -490,7 +490,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 18,
-    "LastSellDate": "2021-12-07T17:12:59.8207743+01:00"
+    "LastSellDate": "2021-12-07T16:12:59.8207743+00:00"
   },
   {
     "Id": 208422,
@@ -507,7 +507,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 14,
-    "LastSellDate": "2021-12-07T12:44:42.6665013+01:00"
+    "LastSellDate": "2021-12-07T11:44:42.6665013+00:00"
   },
   {
     "Id": 201438,
@@ -524,24 +524,24 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 1,
-    "LastSellDate": "2021-12-06T12:26:25.7935619+01:00"
+    "LastSellDate": "2021-12-06T11:26:25.7935619+00:00"
   },
   {
     "Id": 198429,
     "Name": "Tecl",
     "Position": "ST",
     "Rating": 70,
-    "InSales": 1,
+    "InSales": 0,
     "Available": 0,
     "MinPrice": 0,
     "MaxPrice": 0,
     "AveragePrice": 0,
     "MaxBuyPrice": 300,
-    "TotalSold": 3,
+    "TotalSold": 0,
     "SellPrice": 0,
     "Deprecated": false,
-    "TotalSoldAllTime": 14,
-    "LastSellDate": "2021-12-07T18:12:46.8692932+01:00"
+    "TotalSoldAllTime": 16,
+    "LastSellDate": "2021-12-07T17:31:21.0872182+00:00"
   },
   {
     "Id": 260352,
@@ -558,7 +558,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 6,
-    "LastSellDate": "2021-12-06T16:18:27.3793162+01:00"
+    "LastSellDate": "2021-12-06T15:18:27.3793162+00:00"
   },
   {
     "Id": 254903,
@@ -575,7 +575,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 22,
-    "LastSellDate": "2021-12-07T12:44:45.1327992+01:00"
+    "LastSellDate": "2021-12-07T11:44:45.1327992+00:00"
   },
   {
     "Id": 238511,
@@ -592,7 +592,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 16,
-    "LastSellDate": "2021-12-07T14:58:09.8325328+01:00"
+    "LastSellDate": "2021-12-07T13:58:09.8325328+00:00"
   },
   {
     "Id": 225084,
@@ -609,7 +609,7 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 6,
-    "LastSellDate": "2021-12-07T16:41:00.7995024+01:00"
+    "LastSellDate": "2021-12-07T15:41:00.7995024+00:00"
   },
   {
     "Id": 228238,
@@ -622,11 +622,11 @@
     "MaxPrice": 0,
     "AveragePrice": 0,
     "MaxBuyPrice": 300,
-    "TotalSold": 0,
+    "TotalSold": 1,
     "SellPrice": 0,
     "Deprecated": false,
-    "TotalSoldAllTime": 30,
-    "LastSellDate": "2021-12-07T17:48:17.0520881+01:00"
+    "TotalSoldAllTime": 31,
+    "LastSellDate": "2021-12-07T17:33:39.9642409+00:00"
   },
   {
     "Id": 241824,
@@ -643,6 +643,6 @@
     "SellPrice": 0,
     "Deprecated": false,
     "TotalSoldAllTime": 6,
-    "LastSellDate": "2021-12-07T16:29:21.7534184+01:00"
+    "LastSellDate": "2021-12-07T15:29:21.7534184+00:00"
   }
 ]

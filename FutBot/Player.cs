@@ -1,3 +1,5 @@
+using System;
+
 namespace FutBot
 {
     public class Player
@@ -12,14 +14,30 @@ namespace FutBot
         public int MaxPrice { get; set; }
         public int AveragePrice { get; set; }
         public int MaxBuyPrice { get; set; }
+        public int TotalSold { get; set; }
+        public int SellPrice { get; set; }
+        public bool Deprecated { get; set; }
+        public int TotalSoldAllTime { get; set; }
 
-        public Player(long id, string name, string position, int rating, int maxBuyPrice = 300)
+        public DateTime LastSellDate { get; set; }
+
+        public Player(long id, string name, string position, int rating, int maxBuyPrice = 300, int sellPrice = 0,
+            bool deprecated = false)
         {
             Id = id;
             Name = name;
             Position = position;
             Rating = rating;
             MaxBuyPrice = maxBuyPrice;
+            TotalSold = 0;
+            SellPrice = sellPrice;
+            Deprecated = deprecated;
+            LastSellDate = DateTime.MinValue;
+        }
+
+        public Player()
+        {
+            
         }
 
         public override string ToString()

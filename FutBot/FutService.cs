@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using RestSharp;
@@ -21,6 +20,30 @@ namespace FutBot
 
             var response = await client.GetAsync<AuctionResponse>(request, CancellationToken.None);
             return response.AuctionInfo;
+        }
+
+        public async Task<List<Auction>> GetAuctionsInWatchList()
+        {
+            var client = new RestClient("https://utas.external.s2.fut.ea.com");
+
+            var request = new RestRequest("/ut/game/fifa22/watchlist");
+
+            request.AddFutHeaders();
+
+            var response = await client.GetAsync<AuctionResponse>(request, CancellationToken.None);
+            return response.AuctionInfo;
+        }
+
+        public async Task<List<PlayerData>> GetPurchasedPlayersList()
+        {
+            var client = new RestClient("https://utas.external.s2.fut.ea.com");
+
+            var request = new RestRequest("/ut/game/fifa22/purchased/items");
+
+            request.AddFutHeaders();
+
+            var response = await client.GetAsync<PurchasedResponse>(request, CancellationToken.None);
+            return response.ItemData;
         }
 
         public async Task<List<Auction>> GetCriteriaAvailableAuctions(int maxPrice = 300, int minb = 150,
@@ -53,7 +76,7 @@ namespace FutBot
             return response.AuctionInfo;
         }
 
-        public async Task<Auction> BuyAuction(long tradeId, int price)
+        public async Task<Auction> BuyOrBidAuction(long tradeId, int price)
         {
             var client = new RestClient("https://utas.external.s2.fut.ea.com");
 
@@ -128,6 +151,25 @@ namespace FutBot
             return response.AuctionInfo;
         }
 
+        public async Task<List<Auction>> GetPlayerInBidRangeAuctions(long playerId, int maxPrice = 300)
+        {
+            var client = new RestClient("https://utas.external.s2.fut.ea.com");
+
+            var request = new RestRequest("ut/game/fifa22/transfermarket");
+
+            request.AddFutHeaders();
+
+            request.AddQueryParameter("num", "21");
+            request.AddQueryParameter("start", "0");
+            request.AddQueryParameter("type", "player");
+            request.AddQueryParameter("maskedDefId", playerId.ToString());
+            request.AddQueryParameter("macr", maxPrice.ToString());
+
+            var response = await client.GetAsync<AuctionResponse>(request, CancellationToken.None);
+
+            return response.AuctionInfo;
+        }
+
         public async Task ListPlayer(long itemId, int price, int time = 3600)
         {
             var client = new RestClient("https://utas.external.s2.fut.ea.com");
@@ -162,7 +204,17 @@ namespace FutBot
                 buyNowPrice = price
             });
 
-            await client.ExecutePostAsync(request, CancellationToken.None);
+            var response = await client.ExecutePostAsync(request, CancellationToken.None);
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                Program.Anomalies++;
+                Console.WriteLine("Issue When Posting");
+            }
+            else
+            {
+                Console.WriteLine($"Posted With: {price}");
+            }
         }
 
         public async Task DeleteSoldAuction(long tradeId)
@@ -170,6 +222,19 @@ namespace FutBot
             var client = new RestClient("https://utas.external.s2.fut.ea.com");
 
             var request = new RestRequest($"ut/game/fifa22/trade/{tradeId}");
+
+            request.AddFutHeaders();
+
+            client.Delete(request);
+
+            await Task.CompletedTask;
+        }
+
+        public async Task DeleteWatchedAuction(long tradeId)
+        {
+            var client = new RestClient("https://utas.external.s2.fut.ea.com");
+
+            var request = new RestRequest($"ut/game/fifa22/watchlist?tradeId={tradeId}");
 
             request.AddFutHeaders();
 
@@ -197,7 +262,7 @@ namespace FutBot
                 var bestPrice = availableAuctions.Min(a => a.BuyNowPrice);
                 var sellPrice = bestPrice > 1000 ? bestPrice - 100 : bestPrice - 50;
 
-                await ListPlayer(auction.ItemData.Id, Math.Max(sellPrice, 300));
+                await ListPlayer(auction.ItemData.Id, Math.Max(sellPrice, 500));
             }
         }
 
@@ -221,6 +286,19 @@ namespace FutBot
                     $"Available Count: {availableAuctions.Count}, Min Price: {availableAuctions.Min(a => a.BuyNowPrice)}");
                 await SellPlayer(auction.ItemData.Id, Math.Max(sellPrice, 300));
             }
+        }
+
+        public async Task ResubmitList()
+        {
+            var client = new RestClient("https://utas.external.s2.fut.ea.com");
+
+            var request = new RestRequest("ut/game/fifa22/auctionhouse/relist ");
+
+            request.AddFutHeaders();
+
+            client.Put(request);
+
+            await Task.CompletedTask;
         }
     }
 }

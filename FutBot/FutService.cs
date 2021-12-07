@@ -165,9 +165,17 @@ namespace FutBot
             request.AddQueryParameter("maskedDefId", playerId.ToString());
             request.AddQueryParameter("macr", maxPrice.ToString());
 
-            var response = await client.GetAsync<AuctionResponse>(request, CancellationToken.None);
+            try
+            {
+                var response = await client.GetAsync<AuctionResponse>(request, CancellationToken.None);
 
-            return response.AuctionInfo;
+                return response.AuctionInfo;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return new List<Auction>();
+            }
         }
 
         public async Task ListPlayer(long itemId, int price, int time = 3600)

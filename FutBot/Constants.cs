@@ -2,6 +2,7 @@ namespace FutBot
 {
     public static class Constants
     {
-        public static string X_UT_SID = "2cbf4a00-87c1-4ae7-a745-2cc705f5f77e";
+        public static string X_UT_SID = "1a9140d5-347e-4016-8bfb-f48e054c4489";
+        public const string FutBinRoot = "https://www.futbin.com/";
     }
 }

@@ -1,140 +1,193 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace FutBot
 {
     class Program
     {
-        public static int Anomalies;
+        private static readonly List<FutBinPlayer> Players = new();
+        private static readonly Dictionary<string, DateTime> Challenges = new();
+        private static readonly List<string> VisitedChallenges = new();
 
         static async Task Main(string[] args)
         {
+            //await Run();
             Constants.X_UT_SID = args[0];
-            
-            Console.ForegroundColor = ConsoleColor.White;
-            /*var players = new Players();
-            var options = new JsonSerializerOptions {WriteIndented = true};
-            var jsonString = JsonSerializer.Serialize(players, options);
-            await File.WriteAllTextAsync("players.json", jsonString);*/
-
-            await SmartTargetingStrategy();
+            await OldSchool();
         }
 
-        private static async Task SmartTargetingStrategy()
+        private static async Task OldSchool()
         {
-            var totalSold = 0;
-
-            var jsonString = await File.ReadAllTextAsync(@"players.json");
-            var players = JsonSerializer.Deserialize<List<Player>>(jsonString);
-            if (players == null) throw new NullReferenceException("Players");
-
-            foreach (var player in players.Where(p => !p.Deprecated).OrderByDescending(p => p.TotalSoldAllTime))
-            {
-                Console.WriteLine(
-                    $"Player: {player.Name}, Total Sold All Time: {player.TotalSoldAllTime}");
-            }
-
-            foreach (var player in players)
-            {
-                player.TotalSold = 0;
-            }
-
-            var error = false;
+            var futService = new FutService();
+            var minPrice = 1000;
+            var multiplier = 1;
 
             while (true)
             {
-                if (error) Environment.Exit(0);
+                Console.WriteLine("New Iteration");
+                var auctions = await futService.GetPlayerAvailableAuctions("195864", 18000, minPrice);
 
-                try
+                foreach (var availableAuction in auctions.OrderBy(a => a.BuyNowPrice))
                 {
-                    var futService = new FutService();
+                    var auction =
+                        await futService.BuyOrBidAuction(availableAuction.TradeId, availableAuction.BuyNowPrice);
 
-                    Console.ForegroundColor = ConsoleColor.DarkBlue;
-                    Console.WriteLine("New Round");
-
-                    var auctions = await futService.GetAuctionsInTrade();
-
-                    foreach (var player in players)
+                    if (auction == null)
                     {
-                        player.InSales = 0;
+                        Console.WriteLine($"Missed with {availableAuction.BuyNowPrice}");
+                        continue;
                     }
 
-                    foreach (var auction in auctions.Where(a => a.Expires != -1 || a.TradeState != "closed"))
-                    {
-                        var player = players.FirstOrDefault(p => p.Id == auction.ItemData.AssetId);
-                        if (player == null) continue;
+                    Console.WriteLine($"Bought with {availableAuction.BuyNowPrice}");
 
-                        player.InSales++;
-                    }
-
-                    await Task.Delay(1000);
-
-                    var interestingPlayers = await DeleteSoldAuctions(auctions, players, futService);
-
-                    await RelistExpiredAuctions(auctions, players, futService);
-
-                    await SubmitIdleAuctions(auctions, players, futService);
-
-                    var soldInCurrentSession = auctions.Count(a => a.Expires == -1 && a.TradeState == "closed");
-                    totalSold += soldInCurrentSession;
-
-                    var bought = 0;
-                    var needToBuy = 100 - auctions.Count + soldInCurrentSession - Anomalies;
-
-                    if (needToBuy > 0)
-                    {
-                        await BuyPlayers(needToBuy, players, interestingPlayers, bought, futService);
-                    }
-
-
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("Bidding On Interesting Players");
-                    await BidOnPlayers(players);
-
-                    Console.ForegroundColor = ConsoleColor.Magenta;
-                    foreach (var player in players.Where(p => !p.Deprecated).OrderBy(p => p.InSales))
-                    {
-                        Console.WriteLine(
-                            $"Player: {player.Name}, In Sales: {player.InSales}, Total Sold: {player.TotalSold}");
-                    }
-
-                    Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    Console.WriteLine($"{DateTime.Now} ==> Round Done, Total Sold: {totalSold}");
+                    await futService.ListPlayer(auction.ItemData.Id, price: 19750, bidPrice: 19500);
                 }
-                catch (Exception e)
+
+                minPrice += multiplier * 100;
+
+                if (minPrice >= 7000 || minPrice <= 1000)
                 {
-                    Console.WriteLine(e);
-                    error = true;
-                }
-                finally
-                {
-                    var options = new JsonSerializerOptions {WriteIndented = true};
-                    jsonString = JsonSerializer.Serialize(players.Where(p => !p.Deprecated || p.InSales > 0).ToList(),
-                        options);
-                    await File.WriteAllTextAsync("players.json", jsonString);
-                    jsonString = JsonSerializer.Serialize(players.Where(p => p.Deprecated).ToList(), options);
-                    await File.WriteAllTextAsync("deprecated-players.json", jsonString);
+                    multiplier *= -1;
                 }
 
-                if (Anomalies > 0)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"There Are {Anomalies} anomalies");
-                }
-
-                await Task.Delay(3 * 60 * 1000);
+                await Task.Delay(5000);
             }
         }
 
-        private static async Task BidOnPlayers(List<Player> players)
+        private static async Task Inspect()
+        {
+            var challengeSolutionIds = GetChallengeSolutionIds();
+
+            foreach (var challengeSolutionId in challengeSolutionIds)
+            {
+                Console.WriteLine($"Checking Challenge Solution {challengeSolutionId}");
+
+                if (VisitedChallenges.Contains(challengeSolutionId))
+                {
+                    continue;
+                }
+
+                VisitedChallenges.Add(challengeSolutionId);
+
+                var playerFutBinIds = GetChallengePlayerIds(challengeSolutionId);
+
+                foreach (var playerFutBinId in playerFutBinIds)
+                {
+                    Console.WriteLine($"Checking Player {playerFutBinId}");
+
+                    var player = Players.FirstOrDefault(p => p.FutBinId == playerFutBinId);
+
+                    if (player is null)
+                    {
+                        player = await GetFutBinPlayer(playerFutBinId);
+                        Players.Add(player);
+                    }
+
+                    player.Count++;
+                }
+            }
+
+            foreach (var player in Players.Where(p => p.Rating < 75).OrderByDescending(p => p.Count))
+            {
+                Console.WriteLine($"{player} => Count: {player.Count}");
+            }
+        }
+
+        private static async Task Run()
+        {
+            while (true)
+            {
+                Console.WriteLine("New Round");
+
+                var futService = new FutService();
+
+                var auctions = await futService.GetAuctionsInTrade();
+
+                await DeleteSoldAuctions(auctions);
+
+                await RelistExpiredAuctions(auctions);
+
+                auctions = await futService.GetAuctionsInTrade();
+
+                var needToBuy = 100 - auctions.Count;
+
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.WriteLine($"Need To Buy: {needToBuy}");
+
+                if (needToBuy > 0)
+                {
+                    await BuyPlayers(needToBuy, auctions);
+                }
+
+                Console.ForegroundColor = ConsoleColor.Black;
+                Console.WriteLine("Round Completed");
+
+                await Task.Delay(1000 * 60);
+            }
+        }
+
+        private static async Task BrazilianRun()
+        {
+            while (true)
+            {
+                Console.WriteLine("New Round");
+
+                var futService = new FutService();
+
+                var auctions = await futService.GetAuctionsInTrade();
+
+                var soldAuctions = auctions.Where(a => a.Expires == -1 && a.TradeState == "closed").ToList();
+                Console.WriteLine($"Sold Auctions: {soldAuctions.Count}");
+
+                await DeleteSoldAuctions(auctions);
+
+                await RelistExpiredAuctions(auctions);
+
+                var needToBuy = 100 - auctions.Count;
+
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.WriteLine($"Need To Buy: {needToBuy}");
+
+                /*if (needToBuy > 0)
+                {
+                    await BuyBrazilianPlayers(needToBuy);
+                }*/
+
+                await BidOnPlayers(needToBuy);
+
+                Console.ForegroundColor = ConsoleColor.Black;
+                Console.WriteLine("Round Completed");
+
+                await Task.Delay(1000 * 30);
+            }
+        }
+
+        private static async Task BidOnPlayers(int maxPlayerToSell)
         {
             var futService = new FutService();
 
             var watchList = await futService.GetAuctionsInWatchList();
+
+            var doneDeals = watchList.Where(a => a.Expires == -1 && a.BidState == "highest").ToList();
+
+            Console.WriteLine($"Done Deals: {doneDeals.Count}");
+
+            var soldPlayers = 0;
+            foreach (var bidAuction in doneDeals)
+            {
+                if (soldPlayers == maxPlayerToSell) break;
+
+                Console.WriteLine("Selling Player");
+
+                var sellPrice = await GetBestSellPrice(bidAuction);
+
+                await futService.ListPlayer(bidAuction.ItemData.Id, sellPrice, 500);
+
+                soldPlayers++;
+            }
 
             var auctionsToDelete = watchList.Where(a => a.Expires == -1 && a.BidState != "highest").ToList();
 
@@ -146,269 +199,58 @@ namespace FutBot
                 await futService.DeleteWatchedAuction(auction.TradeId);
             }
 
-            if (watchList.Count - auctionsToDelete.Count == 50) return;
+            if (watchList.Count - auctionsToDelete.Count + soldPlayers == 50) return;
 
-            var possibleBids = 50 - watchList.Count + auctionsToDelete.Count;
+            var possibleBids = 50 - watchList.Count + auctionsToDelete.Count - soldPlayers;
 
             Console.ForegroundColor = ConsoleColor.DarkBlue;
             Console.WriteLine($"Need to Bid On {possibleBids} Players");
 
-            var playersBidOrder = players
-                .Where(p => !p.Deprecated && watchList.Count(a => a.ItemData.AssetId == p.Id) < 5)
-                .OrderBy(p => p.InSales).ThenBy(p => watchList.Count(a => a.ItemData.AssetId == p.Id)).ToList();
+            var playerAuctions = await futService.GetCriteriaInBidRangeAuctions();
 
-            foreach (var player in playersBidOrder)
+            if (playerAuctions.Count == 0) return;
+
+            var inTimeRangeAuctions =
+                playerAuctions.Where(a => a.Expires <= 60 && a.TradeState != "highest" && a.SuggestedBid <= 500)
+                    .ToList();
+
+            if (inTimeRangeAuctions.Count == 0)
             {
-                if (possibleBids == 0) break;
+                return;
+            }
 
-                Console.ForegroundColor = ConsoleColor.DarkBlue;
-                Console.WriteLine($"Bid On Player: {player.Name}");
+            foreach (var auction in inTimeRangeAuctions.OrderBy(a => a.Expires).Take(5))
+            {
+                var bidAuction = await futService.BuyOrBidAuction(auction.TradeId, auction.SuggestedBid);
 
-                var maxBids = 5 - watchList.Count(a => a.ItemData.AssetId == player.Id);
-                var bids = 0;
-
-                var playerAuctions =
-                    await futService.GetPlayerInBidRangeAuctions(player.Id, maxPrice: player.MaxBuyPrice - 50);
-
-                if (playerAuctions.Count == 0) continue;
-
-                var inTimeRangeAuctions =
-                    playerAuctions.Where(a => a.Expires <= 600 && a.TradeState != "highest").ToList();
-
-                if (inTimeRangeAuctions.Count == 0)
+                if (bidAuction != null)
                 {
-                    Console.ForegroundColor = ConsoleColor.White;
-                    Console.WriteLine($"Player {player.Name} Not Available");
-                    continue;
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"Successful Bid On Player With {auction.SuggestedBid}");
+                    possibleBids--;
+
+                    if (possibleBids == 0) break;
                 }
 
-                foreach (var auction in inTimeRangeAuctions.OrderBy(a => a.Expires))
-                {
-                    var bidAuction = await futService.BuyOrBidAuction(auction.TradeId, auction.SuggestedBid);
-
-                    if (bidAuction != null)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine($"Successful Bid On Player {player.Name} With {auction.SuggestedBid}");
-                        possibleBids--;
-                        bids++;
-
-                        if (possibleBids == 0) break;
-                        if (bids == maxBids) break;
-                    }
-
-                    await Task.Delay(1000);
-                }
-
-                await Task.Delay(5000);
+                await Task.Delay(2000);
             }
         }
 
-        private static async Task BuyPlayers(int needToBuy, List<Player> players, List<long> interestingPlayers,
-            int bought, FutService futService)
+        private static async Task<int> GetBestSellPrice(Auction auction)
         {
-            var purchasedPlayers = await futService.GetPurchasedPlayersList();
+            var futService = new FutService();
 
-            if (purchasedPlayers.Count != 0)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkCyan;
-                Console.WriteLine($"Need To List: {Math.Min(purchasedPlayers.Count, needToBuy - bought)}");
-
-                foreach (var playerData in purchasedPlayers)
-                {
-                    if (bought == needToBuy) break;
-
-                    var player = players.FirstOrDefault(p => p.Id == playerData.AssetId);
-
-                    Console.WriteLine(player != null ? $"Listing Player: {player.Name}" : "Listing Unknown Player");
-
-                    var sellPrice = await GetBestSellPrice(futService, player, playerData);
-
-                    await futService.ListPlayer(playerData.Id, sellPrice, sellPrice >= 1000 ? 3600 : 10800);
-
-                    bought++;
-                }
-
-                if (bought == needToBuy) return;
-            }
-
-            var watchList = await futService.GetAuctionsInWatchList();
-
-            Console.ForegroundColor = ConsoleColor.DarkCyan;
-            Console.WriteLine($"Need To Buy: {needToBuy}");
-
-            foreach (var player in players.Where(p => !p.Deprecated)
-                .OrderByDescending(p => interestingPlayers.Contains(p.Id) ? 1 : 0)
-                .ThenBy(p => p.InSales)
-                .ThenByDescending(p => p.Rating))
-            {
-                if (bought == needToBuy) break;
-                var maxPlayerToBuy = 5 - player.InSales;
-                if (maxPlayerToBuy <= 0) continue;
-
-
-                Console.ForegroundColor = ConsoleColor.DarkCyan;
-                Console.WriteLine(
-                    $"Need To Buy {Math.Min(needToBuy - bought, maxPlayerToBuy)} For Player {player.Name}");
-
-                var playerBought = 0;
-
-                var bidAuctions = watchList.Where(a =>
-                    a.Expires == -1 && a.BidState == "highest" && a.ItemData.AssetId == player.Id);
-
-                foreach (var bidAuction in bidAuctions)
-                {
-                    if (playerBought == maxPlayerToBuy) break;
-                    if (bought == needToBuy) break;
-
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.WriteLine($"Player {player.Name} Found In Watch List");
-
-                    var sellPrice = await GetBestSellPrice(futService, player, bidAuction);
-
-                    await futService.ListPlayer(bidAuction.ItemData.Id, sellPrice, sellPrice >= 1000 ? 3600 : 10800);
-
-                    playerBought++;
-                    bought++;
-                }
-
-                if (bought == needToBuy) break;
-
-                var playerAuctions =
-                    await futService.GetPlayerCheapAuctions(player.Id, maxPrice: player.MaxBuyPrice);
-
-                if (playerAuctions.Count == 0)
-                {
-                    Console.ForegroundColor = ConsoleColor.White;
-                    Console.WriteLine($"Player {player.Name} Not Available");
-                }
-
-                foreach (var playerAuction in playerAuctions.OrderBy(a => a.BuyNowPrice))
-                {
-                    if (playerBought == maxPlayerToBuy) break;
-                    if (bought == needToBuy) break;
-
-                    var auction = await futService.BuyOrBidAuction(playerAuction.TradeId, playerAuction.BuyNowPrice);
-
-                    if (auction == null)
-                    {
-                        break;
-                    }
-
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.WriteLine($"Player {player.Name} Bought For {playerAuction.BuyNowPrice}");
-
-                    var sellPrice = await GetBestSellPrice(futService, player, auction);
-
-                    await futService.ListPlayer(auction.ItemData.Id, sellPrice, sellPrice >= 1000 ? 3600 : 10800);
-
-                    playerBought++;
-                    bought++;
-
-                    await Task.Delay(1000);
-                }
-
-                await Task.Delay(3000);
-            }
-        }
-
-        private static async Task<int> GetBestSellPrice(FutService futService, Player player, Auction auction)
-        {
-            int sellPrice;
-
-            if (player.InSales == 0)
-            {
-                var cheapestAuctions = await futService.GetPlayerAvailableAuctions(player.Id);
-                sellPrice = Math.Max(cheapestAuctions.Min(a => a.BuyNowPrice) - 50,
-                    auction.ItemData.LastSalePrice + 300);
-
-                if (sellPrice >= 1000 && (sellPrice % 100 != 0))
-                {
-                    sellPrice += 50;
-                }
-            }
-            else
-            {
-                if (player.SellPrice != 0)
-                {
-                    sellPrice = player.SellPrice;
-                }
-                else
-                {
-                    sellPrice = auction.ItemData.LastSalePrice + 300;
-                    if (sellPrice >= 1000 && (sellPrice % 100 != 0))
-                    {
-                        sellPrice += 50;
-                    }
-                }
-            }
-
-            if (!player.Deprecated)
-            {
-                sellPrice = Math.Max(sellPrice, 500);
-            }
-
-            if (player.SellPrice != 0)
-            {
-                sellPrice = Math.Max(sellPrice, player.SellPrice);
-            }
+            var cheapestAuctions = await futService.GetPlayerAvailableAuctions(auction.ItemData.AssetId);
+            var suggestedPrice = cheapestAuctions.Min(a => a.BuyNowPrice) - 50;
+            Console.WriteLine($"Suggested Price: {suggestedPrice}");
+            var sellPrice = Math.Max(suggestedPrice, 700);
 
             return sellPrice;
         }
 
-        private static async Task<int> GetBestSellPrice(FutService futService, Player player, PlayerData playerData)
+        private static async Task DeleteSoldAuctions(List<Auction> auctions)
         {
-            int sellPrice;
-
-            if (player == null)
-            {
-                var cheapestAuctions = await futService.GetPlayerAvailableAuctions(playerData.AssetId);
-                sellPrice = cheapestAuctions.Min(a => a.BuyNowPrice) - 50;
-            }
-            else
-            {
-                if (player.InSales == 0 || player.Id == 226518)
-                {
-                    var cheapestAuctions = await futService.GetPlayerAvailableAuctions(player.Id);
-                    sellPrice = Math.Max(cheapestAuctions.Min(a => a.BuyNowPrice) - 50,
-                        playerData.LastSalePrice + 300);
-
-                    if (sellPrice >= 1000 && (sellPrice % 100 != 0))
-                    {
-                        sellPrice += 50;
-                    }
-                }
-                else
-                {
-                    if (player.SellPrice != 0)
-                    {
-                        sellPrice = player.SellPrice;
-                    }
-                    else
-                    {
-                        sellPrice = playerData.LastSalePrice + 300;
-                        if (sellPrice >= 1000 && (sellPrice % 100 != 0))
-                        {
-                            sellPrice += 50;
-                        }
-                    }
-                }
-            }
-
-            sellPrice = Math.Max(sellPrice, 500);
-
-            if (player != null && player.SellPrice != 0)
-            {
-                sellPrice = Math.Max(sellPrice, player.SellPrice);
-            }
-
-            return sellPrice;
-        }
-
-        private static async Task<List<long>> DeleteSoldAuctions(List<Auction> auctions, List<Player> players,
-            FutService futService)
-        {
-            var interestingPlayers = new List<long>();
+            var futService = new FutService();
 
             var soldAuctions = auctions.Where(a => a.Expires == -1 && a.TradeState == "closed").ToList();
 
@@ -417,116 +259,318 @@ namespace FutBot
 
             foreach (var auction in soldAuctions)
             {
-                var player = players.FirstOrDefault(p => p.Id == auction.ItemData.AssetId);
-
-                if (player is not null)
-                {
-                    if (auction.CurrentBid >= 1000 && !interestingPlayers.Contains(player.Id))
-                    {
-                        interestingPlayers.Add(player.Id);
-                    }
-
-                    player.TotalSold++;
-                    player.TotalSoldAllTime++;
-                    player.LastSellDate = DateTime.Now;
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"Deleting Player {player.Name} Sold With {auction.CurrentBid}");
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"Deleting Unknown Player Sold With {auction.CurrentBid}");
-                }
+                Console.WriteLine($"Deleting Player Sold With {auction.CurrentBid}");
 
                 await futService.DeleteSoldAuction(auction.TradeId);
-                await Task.Delay(2000);
+                await Task.Delay(1000);
             }
-
-            return interestingPlayers;
         }
 
-        private static async Task RelistExpiredAuctions(List<Auction> auctions, List<Player> players,
-            FutService futService)
+        private static async Task RelistExpiredAuctions(List<Auction> auctions)
         {
-            var expiredAuctions = auctions.Where(a =>
-                a.Expires == -1 && a.TradeState == "expired").ToList();
+            var futService = new FutService();
+
+            var expiredAuctions = auctions.Where(a => a.Expires == -1 && a.TradeState == "expired").ToList();
 
             if (expiredAuctions.Count == 0) return;
 
-            Console.ForegroundColor = ConsoleColor.Red;
+            Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine($"Need To Resubmit: {expiredAuctions.Count}");
 
-            foreach (var auction in expiredAuctions.Take(5))
+            foreach (var auction in expiredAuctions)
             {
-                int sellPrice;
-                var player = players.FirstOrDefault(p => p.Id == auction.ItemData.AssetId);
-
-                Console.WriteLine(player != null ? $"Resubmit Player {player.Name}" : "Resubmit Unknown Player");
-
-
-                if (player is not null && player.SellPrice != 0)
+                /*if (auction.BuyNowPrice == 200)
                 {
-                    sellPrice = player.SellPrice;
-                }
-                else
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Discarding One Player");
+                    await futService.DiscardTrade(auction.ItemData.Id);
+                    continue;
+                }*/
+
+
+                //var cheapestAuctions = await futService.GetPlayerAvailableAuctions(auction.ItemData.AssetId);
+
+                //var sellPrice = Math.Max(cheapestAuctions.Min(a => a.BuyNowPrice) - 50, 200);
+
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                await futService.SellPlayer(auction.ItemData.Id, price: auction.BuyNowPrice - 50,
+                    bidPrice: auction.StartingBid - 50);
+
+                await Task.Delay(5000);
+            }
+        }
+
+        private static async Task BuyPlayers(int needToBuy, List<Auction> inTradeAuctions)
+        {
+            var futService = new FutService();
+
+            var checkedPlayers = new List<string>();
+
+            var challengeSolutionIds = GetChallengeSolutionIds();
+
+            var index = 0;
+
+            foreach (var challengeSolutionId in challengeSolutionIds.Take(2))
+            {
+                Console.ForegroundColor = ConsoleColor.Magenta;
+
+                if (Challenges.ContainsKey(challengeSolutionId))
                 {
-                    if (player is {Deprecated: false} && auction.BuyNowPrice >= 1000)
+                    var lastVisitDate = Challenges[challengeSolutionId];
+
+                    Console.WriteLine($"Already Visited Challenge {challengeSolutionId} on {lastVisitDate}");
+                    if (lastVisitDate.AddMinutes(5) <= DateTime.Now)
                     {
-                        sellPrice = await GetBestSellPrice(futService, player, auction);
+                        Console.WriteLine("Retry");
+                        Challenges[challengeSolutionId] = DateTime.Now;
                     }
                     else
                     {
-                        sellPrice = auction.ItemData.LastSalePrice + 300;
-                        if (sellPrice >= 1000 && (sellPrice % 100 != 0))
-                        {
-                            sellPrice += 50;
-                        }
-
-                        if (player is {Deprecated: false})
-                        {
-                            sellPrice = Math.Max(sellPrice, 500);
-                        }
+                        Console.WriteLine("Skip");
+                        continue;
                     }
-                }
-
-                await futService.SellPlayer(auction.ItemData.Id, sellPrice, sellPrice >= 1000 ? 3600 : 10800);
-                await Task.Delay(5000);
-            }
-
-            //await futService.ResubmitList();
-        }
-
-        private static async Task SubmitIdleAuctions(List<Auction> auctions, List<Player> players,
-            FutService futService)
-        {
-            var idleAuctions = auctions.Where(a => a.Expires == 0).ToList();
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"Need To Submit: {idleAuctions.Count}");
-
-            foreach (var auction in idleAuctions)
-            {
-                int sellPrice;
-                var player = players.FirstOrDefault(p => p.Id == auction.ItemData.AssetId);
-
-                if (player is not null && player.SellPrice != 0)
-                {
-                    sellPrice = player.SellPrice;
                 }
                 else
                 {
-                    sellPrice = auction.ItemData.LastSalePrice + 300;
-                    if (sellPrice >= 1000 && (sellPrice % 100 != 0))
-                    {
-                        sellPrice += 50;
-                    }
+                    Challenges.Add(challengeSolutionId, DateTime.Now);
+                    Console.WriteLine($"Visiting Challenge {challengeSolutionId}");
                 }
 
-                await futService.SellPlayer(auction.ItemData.Id, sellPrice, sellPrice >= 1000 ? 3600 : 10800);
-                await Task.Delay(1000);
+                var playerFutBinIds = GetChallengePlayerIds(challengeSolutionId);
 
-                if (Anomalies > 0) Anomalies--;
+                foreach (var playerFutBinId in playerFutBinIds)
+                {
+                    if (checkedPlayers.Contains(playerFutBinId))
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkCyan;
+                        Console.WriteLine("Skipping Player");
+                        continue;
+                    }
+
+                    checkedPlayers.Add(playerFutBinId);
+
+                    var player = Players.FirstOrDefault(p => p.FutBinId == playerFutBinId);
+
+                    if (player is null)
+                    {
+                        player = await GetFutBinPlayer(playerFutBinId);
+                        Players.Add(player);
+                    }
+
+                    if (player.Rating >= 75) continue;
+
+                    var playerInTradeAuctions =
+                        inTradeAuctions.Where(a => a.ItemData.AssetId.ToString() == player.FifaId).ToList();
+
+                    if (playerInTradeAuctions.Count >= 10) continue;
+
+                    Console.ForegroundColor = ConsoleColor.DarkCyan;
+                    Console.WriteLine($"Checking Player {player}");
+                    var auctions = await futService.GetPlayerAvailableAuctions(player.FifaId, 250);
+
+                    var maxBuy = 3 - playerInTradeAuctions.Count;
+
+                    var sellPrice = 500;
+
+                    foreach (var playerAuction in auctions.OrderBy(a => a.BuyNowPrice).Take(Math.Min(2, maxBuy)))
+                    {
+                        var auction =
+                            await futService.BuyOrBidAuction(playerAuction.TradeId, playerAuction.BuyNowPrice);
+
+                        if (auction == null)
+                        {
+                            continue;
+                        }
+
+                        Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        Console.WriteLine($"Player Bought With {auction.BuyNowPrice}");
+
+                        await futService.ListPlayer(auction.ItemData.Id, sellPrice);
+
+                        index++;
+
+                        if (index == needToBuy) break;
+
+                        await Task.Delay(500);
+                    }
+
+                    if (index == needToBuy) break;
+
+                    await Task.Delay(5000);
+                }
+
+                if (index == needToBuy) break;
             }
+        }
+
+
+        private static int counter = 0;
+
+        private static async Task BuyBrazilianPlayers(int needToBuy)
+        {
+            counter++;
+
+            var futService = new FutService();
+            var auctions =
+                await futService.GetCriteriaAvailableAuctions(maxPrice: 500, minBid: counter % 2 == 0 ? -1 : 150);
+
+            var index = 0;
+
+            foreach (var playerAuction in auctions.OrderBy(a => a.BuyNowPrice).ThenByDescending(a => a.Expires))
+            {
+                var auction =
+                    await futService.BuyOrBidAuction(playerAuction.TradeId, playerAuction.BuyNowPrice);
+
+                if (auction == null)
+                {
+                    Console.WriteLine($"Player Missed");
+                    continue;
+                }
+
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine($"Player Bought With {auction.BuyNowPrice}");
+
+                await futService.ListPlayer(auction.ItemData.Id, 800);
+
+                index++;
+
+                if (index == needToBuy) break;
+            }
+        }
+
+        private static List<string> GetChallengeSolutionIds()
+        {
+            var index = 0;
+
+            while (index < 3)
+            {
+                try
+                {
+                    var challengeSolutionIds = new List<string>();
+                    var htmlHelper = new HtmlHelper();
+                    var htmlDoc =
+                        htmlHelper.GetHtmlContent(
+                            "https://www.futbin.com/squad-building-challenges/ALL/690/CONMEBOL%20Libertadores%20Challenge");
+
+                    var nodes = htmlDoc.DocumentNode.SelectNodes("//a[@class='squad_url']");
+
+                    if (nodes == null)
+                    {
+                        return challengeSolutionIds;
+                    }
+
+                    foreach (var node in nodes)
+                    {
+                        var challengeSolutionUrl = node.Attributes["href"].Value;
+                        var regex = new Regex("/22/squad/(?<ChallengeSolutionId>[\\d]*)/sbc");
+                        var match = regex.Match(challengeSolutionUrl);
+                        if (!match.Success)
+                        {
+                            throw new HtmlParseException();
+                        }
+
+                        var challengeSolutionId = match.Groups["ChallengeSolutionId"].Value;
+
+                        challengeSolutionIds.Add(challengeSolutionId);
+                    }
+
+                    return challengeSolutionIds;
+                }
+                catch (Exception)
+                {
+                    Task.Delay(5000);
+                    index++;
+                }
+            }
+
+            throw new HtmlParseException();
+        }
+
+        private static List<string> GetChallengePlayerIds(string challengeSolutionId)
+        {
+            var index = 0;
+
+            while (index < 3)
+            {
+                try
+                {
+                    var players = new List<string>();
+                    var htmlHelper = new HtmlHelper();
+                    var htmlDoc =
+                        htmlHelper.GetHtmlContent($"https://www.futbin.com/22/squad/{challengeSolutionId}/sbc");
+
+                    var nodes = htmlDoc.DocumentNode.SelectNodes("//div[@class='card cardnum ui-droppable added']");
+
+                    if (nodes == null)
+                    {
+                        return players;
+                    }
+
+                    foreach (var node in nodes)
+                    {
+                        var div = node.SelectSingleNode(".//div[@class='cardetails']");
+                        var linkNode = div.SelectSingleNode(".//a");
+                        var playerUrl = linkNode.Attributes["href"].Value;
+
+                        var regex = new Regex("/22/player/(?<PlayerId>[\\d]*)/.*");
+                        var match = regex.Match(playerUrl);
+                        if (!match.Success)
+                        {
+                            throw new HtmlParseException();
+                        }
+
+                        var playerId = match.Groups["PlayerId"].Value;
+
+                        players.Add(playerId);
+                    }
+
+                    return players;
+                }
+                catch (Exception)
+                {
+                    index++;
+                    Task.Delay(5000);
+                }
+            }
+
+            throw new HtmlParseException();
+        }
+
+        private static async Task<FutBinPlayer> GetFutBinPlayer(string playerFutBinId)
+        {
+            var index = 0;
+            while (index < 3)
+            {
+                try
+                {
+                    var htmlHelper = new HtmlHelper();
+                    var htmlDoc = htmlHelper.GetHtmlContent($"https://www.futbin.com/22/player/{playerFutBinId}");
+
+
+                    var name = htmlDoc.DocumentNode.SelectSingleNode("//*[@id=\"Player-card\"]/div[3]").InnerText;
+                    var rating = htmlDoc.DocumentNode.SelectSingleNode("//*[@id=\"Player-card\"]/div[2]").InnerText;
+                    var position = htmlDoc.DocumentNode.SelectSingleNode("//*[@id=\"Player-card\"]/div[4]").InnerText;
+                    var pageInfoDiv = htmlDoc.DocumentNode.SelectSingleNode("//*[@id=\"page-info\"]");
+                    var fifaId = pageInfoDiv.Attributes["data-baseid"].Value;
+
+
+                    return new FutBinPlayer
+                    {
+                        FutBinId = playerFutBinId,
+                        FifaId = fifaId,
+                        Name = name,
+                        Position = position,
+                        Rating = int.Parse(rating)
+                    };
+                }
+                catch (Exception)
+                {
+                    await Task.Delay(5000);
+                    index++;
+                }
+            }
+
+            throw new HtmlParseException();
         }
     }
 }
